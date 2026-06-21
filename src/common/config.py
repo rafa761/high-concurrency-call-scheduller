@@ -6,7 +6,7 @@ class Settings(BaseSettings):
 
     aws_region: str = "us-east-1"
     aws_endpoint_url: str = "http://localhost:4566"
-    database_url: str = "postgresql://scheduler:scheduler@localhost:5432/scheduler"
+    database_url: str = "postgresql+psycopg://scheduler:scheduler@localhost:5432/scheduler"
 
     campaign_uploads_bucket: str = "campaign-uploads"
     call_artifacts_bucket: str = "call-artifacts"

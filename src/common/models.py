@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, Column, DateTime, UniqueConstraint
+from sqlalchemy import JSON, Column, DateTime, Index, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
@@ -40,5 +40,25 @@ class Contact(SQLModel, table=True):
     meta: dict = Field(
         default_factory=dict,
         sa_column=Column("metadata", JSON().with_variant(JSONB, "postgresql")),
+    )
+    created_at: datetime = Field(default_factory=_utcnow, sa_column=_created_at_column())
+
+
+class CallTask(SQLModel, table=True):
+    __tablename__ = "call_tasks"
+    __table_args__ = (
+        Index("ix_call_tasks_status_next_eligible", "status", "next_eligible_at"),
+    )
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    campaign_id: uuid.UUID = Field(foreign_key="campaigns.id", index=True)
+    contact_id: uuid.UUID = Field(foreign_key="contacts.id", unique=True)
+    status: str = Field(default="pending")
+    attempts: int = Field(default=0)
+    next_eligible_at: datetime | None = Field(
+        default=None, sa_column=Column(DateTime(timezone=True), nullable=True)
+    )
+    last_attempt_at: datetime | None = Field(
+        default=None, sa_column=Column(DateTime(timezone=True), nullable=True)
     )
     created_at: datetime = Field(default_factory=_utcnow, sa_column=_created_at_column())

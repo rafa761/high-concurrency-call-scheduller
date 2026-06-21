@@ -61,3 +61,25 @@ async def test_contact_persists_and_enforces_unique_phone(session):
     assert fetched.phone == "+15551230001"
     assert fetched.meta == {"first_name": "Ann"}
     assert fetched.timezone == "America/New_York"
+
+
+async def test_call_task_persists_with_defaults(session):
+    from common.models import CallTask, Contact
+
+    campaign = Campaign(name="c", max_concurrency=1)
+    session.add(campaign)
+    await session.commit()
+    contact = Contact(campaign_id=campaign.id, phone="+15551239999", timezone="America/New_York")
+    session.add(contact)
+    await session.commit()
+
+    task = CallTask(campaign_id=campaign.id, contact_id=contact.id)
+    session.add(task)
+    await session.commit()
+
+    fetched = await session.get(CallTask, task.id)
+    assert fetched.status == "pending"
+    assert fetched.attempts == 0
+    assert fetched.next_eligible_at is None
+    assert fetched.last_attempt_at is None
+    assert fetched.created_at is not None

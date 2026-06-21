@@ -68,6 +68,34 @@ validate: ## Validate the Terraform configuration (no LocalStack needed)
 	$(TFLOCAL) sh -c "terraform init -backend=false -input=false >/dev/null && terraform validate"
 
 # ----------------------------------------------------------------------------
+# Application services (campaign-api + migrations)
+# ----------------------------------------------------------------------------
+
+.PHONY: build
+build: ## Build all service images
+	$(COMPOSE) build
+
+.PHONY: start
+start: up apply ## Full environment up: stack healthy + infra + migrate + API
+	$(COMPOSE) up -d --build migrate campaign-api
+
+.PHONY: migrate
+migrate: ## Apply database migrations (alembic upgrade head)
+	$(COMPOSE) run --rm migrate
+
+.PHONY: revision
+revision: ## Autogenerate a migration: make revision m="message" (needs postgres up)
+	uv run alembic revision --autogenerate -m "$(m)"
+
+.PHONY: api-logs
+api-logs: ## Tail campaign-api logs (Ctrl-C to stop)
+	$(COMPOSE) logs -f campaign-api
+
+.PHONY: demo
+demo: ## End-to-end smoke: create a campaign and upload the sample CSV
+	@bash scripts/demo.sh
+
+# ----------------------------------------------------------------------------
 # Inspect what actually exists in LocalStack
 # ----------------------------------------------------------------------------
 

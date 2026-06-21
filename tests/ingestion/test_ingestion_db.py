@@ -60,3 +60,30 @@ def test_mark_campaign_ready(conn):
     with conn.cursor() as cur:
         cur.execute("SELECT status FROM campaigns WHERE id = %s", (cid,))
         assert cur.fetchone()[0] == "ready"
+
+
+def test_create_call_tasks_is_idempotent_and_set_based(conn):
+    cid = _make_campaign(conn)
+    rows = [
+        ContactRow("+15551240001", "America/New_York", {}),
+        ContactRow("+15551240002", "America/Chicago", {}),
+        ContactRow("+15551240003", "America/Denver", {}),
+    ]
+    insert_contacts(conn, cid, rows)
+
+    from ingestion.db import create_call_tasks
+
+    created = create_call_tasks(conn, cid)
+    assert created == 3
+
+    # Re-running creates nothing (one task per contact).
+    assert create_call_tasks(conn, cid) == 0
+
+    with conn.cursor() as cur:
+        cur.execute("SELECT count(*) FROM call_tasks WHERE campaign_id = %s", (cid,))
+        assert cur.fetchone()[0] == 3
+        cur.execute(
+            "SELECT count(*) FROM call_tasks WHERE campaign_id = %s AND status = 'pending'",
+            (cid,),
+        )
+        assert cur.fetchone()[0] == 3

@@ -4,7 +4,7 @@ import uuid
 import boto3
 import psycopg
 
-from ingestion.db import insert_contacts, mark_campaign_ready
+from ingestion.db import create_call_tasks, insert_contacts, mark_campaign_ready
 from ingestion.parser import parse_contacts
 
 
@@ -36,6 +36,7 @@ def handler(event, context) -> dict:
 
         with psycopg.connect(dsn) as conn:
             inserted = insert_contacts(conn, campaign_id, parsed.valid)
+            tasks_created = create_call_tasks(conn, campaign_id)
             mark_campaign_ready(conn, campaign_id)
             conn.commit()
 
@@ -43,7 +44,7 @@ def handler(event, context) -> dict:
         total_errors += len(parsed.errors)
         print(
             f"ingested campaign={campaign_id} key={key} "
-            f"inserted={inserted} skipped={len(parsed.errors)}"
+            f"inserted={inserted} tasks={tasks_created} skipped={len(parsed.errors)}"
         )
 
     return {"ingested": total_ingested, "errors": total_errors}

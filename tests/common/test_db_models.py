@@ -39,3 +39,25 @@ async def test_campaign_query_by_name(session):
     rows = result.scalars().all()
     assert len(rows) == 1
     assert rows[0].name == "alpha"
+
+
+async def test_contact_persists_and_enforces_unique_phone(session):
+    from common.models import Contact
+
+    campaign = Campaign(name="c", max_concurrency=1)
+    session.add(campaign)
+    await session.commit()
+
+    c1 = Contact(
+        campaign_id=campaign.id,
+        phone="+15551230001",
+        timezone="America/New_York",
+        meta={"first_name": "Ann"},
+    )
+    session.add(c1)
+    await session.commit()
+
+    fetched = await session.get(Contact, c1.id)
+    assert fetched.phone == "+15551230001"
+    assert fetched.meta == {"first_name": "Ann"}
+    assert fetched.timezone == "America/New_York"

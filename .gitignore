@@ -243,3 +243,7 @@ override.tf.json
 *_override.tf.json
 .terraformrc
 terraform.rc
+
+# Lambda build artifacts
+build/
+infra/terraform/build/

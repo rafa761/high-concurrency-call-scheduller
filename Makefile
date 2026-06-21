@@ -95,6 +95,14 @@ api-logs: ## Tail campaign-api logs (Ctrl-C to stop)
 demo: ## End-to-end smoke: create a campaign and upload the sample CSV
 	@bash scripts/demo.sh
 
+.PHONY: build-lambda
+build-lambda: ## Build the ingestion Lambda deployment zip
+	./scripts/build_lambda.sh
+
+.PHONY: lambda-logs
+lambda-logs: ## Show recent ingestion Lambda logs
+	$(AWSLOCAL) logs tail /aws/lambda/ingestion --format short 2>/dev/null || echo "no logs yet"
+
 # ----------------------------------------------------------------------------
 # Inspect what actually exists in LocalStack
 # ----------------------------------------------------------------------------

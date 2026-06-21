@@ -7,8 +7,11 @@ services:
       - "4566:4566"
     environment:
       - LOCALSTACK_AUTH_TOKEN=${LOCALSTACK_AUTH_TOKEN:?set it in .env (see .env.example)}
-      - SERVICES=s3,sqs,lambda
+      - SERVICES=s3,sqs,lambda,iam,logs
       - DEBUG=0
+      # Run Lambda containers on the compose network so they can reach
+      # postgres and localstack by hostname. <project>_default = hccs_default.
+      - LAMBDA_DOCKER_NETWORK=hccs_default
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
     healthcheck:

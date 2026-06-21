@@ -1,0 +1,50 @@
+services:
+  localstack:
+    image: localstack/localstack:latest
+    ports:
+      - "4566:4566"
+    environment:
+      - LOCALSTACK_AUTH_TOKEN=${LOCALSTACK_AUTH_TOKEN:?set it in .env (see .env.example)}
+      - SERVICES=s3,sqs,lambda
+      - DEBUG=0
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    healthcheck:
+      test: ["CMD-SHELL", "awslocal sqs list-queues || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: scheduler
+      POSTGRES_PASSWORD: scheduler
+      POSTGRES_DB: scheduler
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scheduler"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  infra:
+    build: ./infra
+    depends_on:
+      localstack:
+        condition: service_healthy
+    environment:
+      - AWS_DEFAULT_REGION=us-east-1
+      # tflocal reads the LocalStack endpoint from AWS_ENDPOINT_URL (host+port).
+      - AWS_ENDPOINT_URL=http://localstack:4566
+      # Pin the S3 host so it resolves on the compose network (tflocal otherwise
+      # defaults to s3.localhost.localstack.cloud, which is not reachable here).
+      - S3_HOSTNAME=localstack
+    volumes:
+      - ./infra/terraform:/terraform
+    working_dir: /terraform
+    command:
+      - sh
+      - -c
+      - "tflocal init -input=false && tflocal apply -auto-approve -input=false"

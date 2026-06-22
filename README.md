@@ -1,6 +1,6 @@
 # High-Concurrency Call Scheduler
 
-A local, end-to-end **high-concurrency outbound call orchestration platform** — the
+A local, end-to-end **high-concurrency call scheduller platform** — the
 kind of system a Fortune 500 would use to turn a 5-million-row campaign upload into
 millions of independently-scheduled voice-AI phone calls, place them through a
 telephony provider, capture each outcome, and deliver it back to the client's CRM.

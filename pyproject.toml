@@ -33,6 +33,9 @@ dev = [
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 asyncio_mode = "auto"
+# Key test modules by full path so duplicate basenames (e.g. two test_adapter.py)
+# don't collide under the default "prepend" import mode.
+addopts = "--import-mode=importlib"
 filterwarnings = [
     "ignore:.*HTTP_422_UNPROCESSABLE_ENTITY.*:DeprecationWarning",
 ]

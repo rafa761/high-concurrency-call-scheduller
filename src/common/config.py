@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     outcome_queue: str = "outcome-delivery"
     crm_dlq: str = "crm-dlq"
 
+    scheduler_window_start_hour: int = 8
+    scheduler_window_end_hour: int = 21
+    scheduler_batch_size: int = 50
+    scheduler_poll_interval_seconds: float = 5.0
+
 
 def get_settings() -> Settings:
     return Settings()

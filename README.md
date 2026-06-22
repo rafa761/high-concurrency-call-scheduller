@@ -1,9 +1,9 @@
-# Outbound Call Orchestration Platform
+# High-Concurrency Call Scheduler
 
-A local, end-to-end **outbound voice-AI call orchestration platform** — the kind of
-system a Fortune 500 would use to turn a 5-million-row campaign upload into millions
-of independently-scheduled phone calls, place them through a telephony provider,
-capture each outcome, and deliver it back to the client's CRM.
+A local, end-to-end **high-concurrency outbound call orchestration platform** — the
+kind of system a Fortune 500 would use to turn a 5-million-row campaign upload into
+millions of independently-scheduled voice-AI phone calls, place them through a
+telephony provider, capture each outcome, and deliver it back to the client's CRM.
 
 It runs entirely on your machine via **LocalStack** (S3, SQS, Lambda) + Docker
 Compose. The goal is **architecture fidelity at small scale**: faithfully reproduce
@@ -12,13 +12,9 @@ fan-out, failure isolation, idempotency, per-campaign concurrency caps, retry/ba
 dead-letter queues, and a live operations dashboard — without pretending a laptop can
 serve 10,000 concurrent calls.
 
-> Built as a guided, test-driven learning project: nine incremental "lessons", each a
-> working, verifiable increment. Specs and per-lesson plans live in
-> `docs/superpowers/` (gitignored).
-
 ## Architecture
 
-![Outbound call scheduler architecture](docs/diagrams/outbound-scheduller-2026-06-16-1.png)
+![High concurrency call scheduller architecture](docs/diagrams/high-concurrency-call-scheduller-architecture-2026-06-20.png)
 
 The spine is a **queue-decoupled fan-out pipeline**: a huge batch input is shattered
 into tiny independent work items that flow through stages connected by durable
@@ -98,6 +94,11 @@ Terraform (`tflocal`) · PostgreSQL 18 · Docker Compose · LocalStack · `uv` �
 ```bash
 cp .env.example .env   # then paste your token
 ```
+
+`.env` also holds the operational tuning knobs (calling-window hours, scheduler
+batch size / poll interval, reaper timeout, dashboard refresh) — `SCHEDULER_`-prefixed
+and read by `common.config.Settings`. They're injected into the containers via
+docker-compose `env_file`, so to retune you edit `.env` and `make up` — no code change.
 
 ## Quick start
 

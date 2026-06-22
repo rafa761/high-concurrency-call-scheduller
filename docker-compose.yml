@@ -60,6 +60,8 @@ services:
     build:
       context: .
       dockerfile: src/campaign_api/Dockerfile
+    env_file:
+      - .env
     depends_on:
       postgres:
         condition: service_healthy
@@ -71,6 +73,8 @@ services:
     build:
       context: .
       dockerfile: src/campaign_api/Dockerfile
+    env_file:
+      - .env
     depends_on:
       postgres:
         condition: service_healthy
@@ -91,6 +95,8 @@ services:
     build:
       context: .
       dockerfile: src/campaign_api/Dockerfile
+    env_file:
+      - .env
     depends_on:
       postgres:
         condition: service_healthy
@@ -109,6 +115,8 @@ services:
     build:
       context: .
       dockerfile: src/campaign_api/Dockerfile
+    env_file:
+      - .env
     environment:
       - MOCK_PROVIDER_FAILURE_RATE=0.0
       - MOCK_PROVIDER_LATENCY_MS=0
@@ -120,6 +128,8 @@ services:
     build:
       context: .
       dockerfile: src/campaign_api/Dockerfile
+    env_file:
+      - .env
     depends_on:
       postgres:
         condition: service_healthy
@@ -139,6 +149,8 @@ services:
     build:
       context: .
       dockerfile: src/campaign_api/Dockerfile
+    env_file:
+      - .env
     depends_on:
       postgres:
         condition: service_healthy
@@ -159,6 +171,8 @@ services:
     build:
       context: .
       dockerfile: src/campaign_api/Dockerfile
+    env_file:
+      - .env
     environment:
       - MOCK_CRM_FAILURE_RATE=0.0
       - MOCK_CRM_LATENCY_MS=0
@@ -170,6 +184,8 @@ services:
     build:
       context: .
       dockerfile: src/campaign_api/Dockerfile
+    env_file:
+      - .env
     depends_on:
       postgres:
         condition: service_healthy
@@ -189,6 +205,8 @@ services:
     build:
       context: .
       dockerfile: src/campaign_api/Dockerfile
+    env_file:
+      - .env
     depends_on:
       postgres:
         condition: service_healthy

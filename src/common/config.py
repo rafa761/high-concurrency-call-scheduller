@@ -2,7 +2,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="SCHEDULER_", extra="ignore")
+    # Reads SCHEDULER_*-prefixed vars from the environment and from a local .env
+    # file, so operational knobs can be tuned without editing this file.
+    model_config = SettingsConfigDict(
+        env_prefix="SCHEDULER_", env_file=".env", extra="ignore"
+    )
 
     aws_region: str = "us-east-1"
     aws_endpoint_url: str = "http://localhost:4566"
@@ -31,7 +35,7 @@ class Settings(BaseSettings):
     provider_callback_url: str = "http://outcome-service:9002/provider/webhook"
     webhook_signing_secret: str = "dev-signing-secret"
     crm_base_url: str = "http://localhost:9003"
-    dashboard_interval_seconds: float = 1.0
+    dashboard_interval_seconds: float = 0.5
 
 
 def get_settings() -> Settings:

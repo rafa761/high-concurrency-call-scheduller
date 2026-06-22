@@ -70,3 +70,24 @@ class CallTask(SQLModel, table=True):
         default=None, sa_column=Column(DateTime(timezone=True), nullable=True)
     )
     created_at: datetime = Field(default_factory=_utcnow, sa_column=_created_at_column())
+
+
+class ProviderEvent(SQLModel, table=True):
+    __tablename__ = "provider_events"
+
+    event_id: str = Field(primary_key=True)
+    received_at: datetime = Field(default_factory=_utcnow, sa_column=_created_at_column())
+
+
+class Outcome(SQLModel, table=True):
+    __tablename__ = "outcomes"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    call_task_id: uuid.UUID = Field(foreign_key="call_tasks.id", index=True)
+    outcome_type: str
+    payload: dict = Field(
+        default_factory=dict,
+        sa_column=Column("payload", JSON().with_variant(JSONB, "postgresql")),
+    )
+    transcript_s3_key: str | None = Field(default=None)
+    created_at: datetime = Field(default_factory=_utcnow, sa_column=_created_at_column())

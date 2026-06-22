@@ -30,6 +30,16 @@ async def test_stats_returns_json(client):
     assert resp.json() == _FAKE
 
 
+async def test_redrive_returns_moved_count(monkeypatch):
+    monkeypatch.setattr(dash, "_snapshot", lambda: _FAKE)
+    monkeypatch.setattr(dash, "_redrive", lambda: 2)
+    transport = ASGITransport(app=dash.app)
+    async with AsyncClient(transport=transport, base_url="http://test") as c:
+        resp = await c.post("/redrive")
+    assert resp.status_code == 200
+    assert resp.json() == {"moved": 2}
+
+
 async def test_index_serves_html(client):
     resp = await client.get("/")
     assert resp.status_code == 200

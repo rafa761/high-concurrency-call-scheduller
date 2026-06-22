@@ -93,6 +93,15 @@
   .phead { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
   .phead h2 { margin:0; font-size:11px; letter-spacing:.28em; text-transform:uppercase; color:var(--dim); font-weight:600; }
   .phead .tag { font-family:var(--mono); font-size:10px; color:var(--dim); letter-spacing:.1em; }
+  .phead .right { display:flex; align-items:center; gap:12px; }
+  .btn {
+    font-family: var(--mono); font-size: 10px; letter-spacing:.16em; text-transform:uppercase;
+    color: var(--amber); background: transparent; border: 1px solid rgba(251,191,36,.45);
+    border-radius: 6px; padding: 5px 11px; cursor: pointer; transition: all .15s;
+  }
+  .btn:hover { background: rgba(251,191,36,.12); border-color: var(--amber); }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .btn.done { color: var(--green); border-color: rgba(52,211,153,.6); }
 
   .num { font-family: var(--mono); font-variant-numeric: tabular-nums; font-weight: 500; line-height: 1; }
   .flash { animation: flash .6s ease; }
@@ -153,7 +162,10 @@
 
   <main class="grid">
     <section class="panel span-8" id="panel-queues">
-      <div class="phead"><h2>Message Queues</h2><span class="tag">depth · in-flight</span></div>
+      <div class="phead"><h2>Message Queues</h2>
+        <span class="right"><span class="tag">depth · in-flight</span>
+        <button class="btn" id="btn-redrive" title="Move dead-lettered messages back to outcome-delivery">↻ Redrive DLQ</button></span>
+      </div>
       <div class="q" id="q-dispatch">
         <div class="qtop"><span class="qname">dispatch</span><span><span class="qval num" data-q="dispatch">0</span><span class="qsub" data-qf="dispatch">+0 in-flight</span></span></div>
         <div class="bar"><span data-qbar="dispatch"></span></div>
@@ -279,6 +291,21 @@
   es.onopen = () => setLink(true);
   es.onerror = () => setLink(false);
   es.onmessage = (e) => { try { render(JSON.parse(e.data)); setLink(true); } catch (_) {} };
+
+  // DLQ redrive: move dead-letters back to outcome-delivery (CRM worker re-delivers idempotently)
+  const btn = $("#btn-redrive");
+  btn.addEventListener("click", async () => {
+    const original = btn.textContent;
+    btn.disabled = true; btn.textContent = "↻ Redriving…";
+    try {
+      const r = await fetch("/redrive", { method: "POST" });
+      const { moved } = await r.json();
+      btn.classList.add("done"); btn.textContent = `✓ Moved ${moved}`;
+    } catch (_) {
+      btn.textContent = "✗ Failed";
+    }
+    setTimeout(() => { btn.disabled = false; btn.classList.remove("done"); btn.textContent = original; }, 2500);
+  });
 </script>
 </body>
 </html>

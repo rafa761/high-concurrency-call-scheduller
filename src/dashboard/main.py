@@ -7,9 +7,10 @@ from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, StreamingResponse
 from starlette.concurrency import run_in_threadpool
 
-from common.aws import sqs_client
+from common.aws import resolve_queue_url, sqs_client
 from common.config import get_settings
 from common.db import psycopg_dsn
+from dashboard.redrive import redrive_dlq
 from dashboard.stats import collect_stats
 
 app = FastAPI(title="Dashboard")
@@ -24,9 +25,23 @@ def _snapshot() -> dict:
         return collect_stats(conn, sqs, settings)
 
 
+def _redrive() -> int:
+    settings = get_settings()
+    sqs = sqs_client(settings.aws_endpoint_url, settings)
+    source = resolve_queue_url(sqs, settings.crm_dlq)
+    dest = resolve_queue_url(sqs, settings.outcome_queue)
+    return redrive_dlq(sqs, source, dest)
+
+
 @app.get("/stats")
 async def stats() -> dict:
     return await run_in_threadpool(_snapshot)
+
+
+@app.post("/redrive")
+async def redrive() -> dict:
+    moved = await run_in_threadpool(_redrive)
+    return {"moved": moved}
 
 
 @app.get("/stats/stream")

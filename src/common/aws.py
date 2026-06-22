@@ -58,3 +58,7 @@ def resolve_queue_url(client, queue_name: str) -> str:
 def send_message(client, queue_url: str, body: dict) -> str:
     resp = client.send_message(QueueUrl=queue_url, MessageBody=json.dumps(body))
     return resp["MessageId"]
+
+
+def put_text(client, bucket: str, key: str, text: str) -> None:
+    client.put_object(Bucket=bucket, Key=key, Body=text.encode())

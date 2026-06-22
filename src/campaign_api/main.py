@@ -11,7 +11,7 @@ from campaign_api.schemas import (
 from common import aws
 from common.config import get_settings
 from common.db import get_session
-from common.models import Campaign
+from common.models import Campaign, CampaignConcurrency
 
 app = FastAPI(title="Campaign Upload API")
 
@@ -25,6 +25,7 @@ async def create_campaign(
     campaign = Campaign(name=body.name, max_concurrency=body.max_concurrency)
     campaign.s3_key = f"campaigns/{campaign.id}/contacts.csv"
     session.add(campaign)
+    session.add(CampaignConcurrency(campaign_id=campaign.id, active_count=0))
     await session.commit()
 
     upload_url = aws.presign_put_url(settings.campaign_uploads_bucket, campaign.s3_key)

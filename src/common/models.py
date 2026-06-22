@@ -44,6 +44,13 @@ class Contact(SQLModel, table=True):
     created_at: datetime = Field(default_factory=_utcnow, sa_column=_created_at_column())
 
 
+class CampaignConcurrency(SQLModel, table=True):
+    __tablename__ = "campaign_concurrency"
+
+    campaign_id: uuid.UUID = Field(foreign_key="campaigns.id", primary_key=True)
+    active_count: int = Field(default=0)
+
+
 class CallTask(SQLModel, table=True):
     __tablename__ = "call_tasks"
     __table_args__ = (

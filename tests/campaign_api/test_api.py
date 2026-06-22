@@ -1,3 +1,5 @@
+import uuid
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -9,12 +11,21 @@ from common.db import get_session
 
 
 @pytest.fixture
-async def client(monkeypatch):
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
-    async with engine.begin() as conn:
+async def engine():
+    eng = create_async_engine("sqlite+aiosqlite:///:memory:")
+    async with eng.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
-    maker = async_sessionmaker(engine, expire_on_commit=False)
+    yield eng
+    await eng.dispose()
 
+
+@pytest.fixture
+def maker(engine):
+    return async_sessionmaker(engine, expire_on_commit=False)
+
+
+@pytest.fixture
+async def client(maker, monkeypatch):
     async def _session_override():
         async with maker() as s:
             yield s
@@ -32,7 +43,6 @@ async def client(monkeypatch):
         yield c
 
     app.dependency_overrides.clear()
-    await engine.dispose()
 
 
 async def test_create_campaign_returns_id_key_and_url(client):
@@ -65,3 +75,15 @@ async def test_get_campaign_roundtrip(client):
 async def test_get_missing_campaign_returns_404(client):
     resp = await client.get("/campaigns/00000000-0000-0000-0000-000000000000")
     assert resp.status_code == 404
+
+
+async def test_create_campaign_creates_concurrency_row(client, maker):
+    from common.models import CampaignConcurrency
+
+    resp = await client.post("/campaigns", json={"name": "x", "max_concurrency": 7})
+    cid = uuid.UUID(resp.json()["campaign_id"])
+
+    async with maker() as s:
+        cc = await s.get(CampaignConcurrency, cid)
+        assert cc is not None
+        assert cc.active_count == 0

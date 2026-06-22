@@ -98,3 +98,14 @@ services:
       - SCHEDULER_DATABASE_URL=postgresql+psycopg://scheduler:scheduler@postgres:5432/scheduler
       - SCHEDULER_AWS_ENDPOINT_URL=http://localstack:4566
     command: ["uv", "run", "python", "-m", "scheduler.main"]
+
+  mock-provider:
+    build:
+      context: .
+      dockerfile: src/campaign_api/Dockerfile
+    environment:
+      - MOCK_PROVIDER_FAILURE_RATE=0.0
+      - MOCK_PROVIDER_LATENCY_MS=0
+    command: ["uv", "run", "uvicorn", "mock_provider.main:app", "--host", "0.0.0.0", "--port", "9001"]
+    ports:
+      - "9001:9001"

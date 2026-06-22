@@ -91,3 +91,15 @@ class Outcome(SQLModel, table=True):
     )
     transcript_s3_key: str | None = Field(default=None)
     created_at: datetime = Field(default_factory=_utcnow, sa_column=_created_at_column())
+
+
+class CrmDeliveryAttempt(SQLModel, table=True):
+    __tablename__ = "crm_delivery_attempts"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    outcome_id: uuid.UUID = Field(foreign_key="outcomes.id", index=True)
+    attempt_number: int
+    status: str
+    response_code: int | None = Field(default=None)
+    idempotency_key: str
+    created_at: datetime = Field(default_factory=_utcnow, sa_column=_created_at_column())

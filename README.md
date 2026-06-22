@@ -12,6 +12,46 @@ fan-out, failure isolation, idempotency, per-campaign concurrency caps, retry/ba
 dead-letter queues, and a live operations dashboard — without pretending a laptop can
 serve 10,000 concurrent calls.
 
+## Watch it work
+
+Three short videos, in the order they're meant to be watched — each one zooms in a
+level deeper, from *seeing it run* to *understanding the design* to *reading the code*.
+
+<table>
+<tr>
+<td width="33%" valign="top" align="center">
+
+[![System Walkthrough](https://img.youtube.com/vi/WWsjfVf3tQs/hqdefault.jpg)](https://youtu.be/WWsjfVf3tQs)
+
+**1 · [See it run](https://youtu.be/WWsjfVf3tQs)**
+
+Boot the whole stack, upload a campaign, and watch the pipeline move on the live
+dashboard — then break it with chaos mode and watch it recover.
+
+</td>
+<td width="33%" valign="top" align="center">
+
+[![System Architecture](https://img.youtube.com/vi/7a59g12OL3Q/hqdefault.jpg)](https://youtu.be/7a59g12OL3Q)
+
+**2 · [Understand the design](https://youtu.be/7a59g12OL3Q)**
+
+Follow one contact through the queue-decoupled fan-out pipeline and the guarantees
+that keep it alive: concurrency caps, idempotency, retries, DLQs, the reaper.
+
+</td>
+<td width="33%" valign="top" align="center">
+
+[![Code Deep Dive](https://img.youtube.com/vi/psnAk4uqomU/hqdefault.jpg)](https://youtu.be/psnAk4uqomU)
+
+**3 · [Read the code](https://youtu.be/psnAk4uqomU)**
+
+Inside the concurrency-critical paths: `SKIP LOCKED` claiming, the atomic cap, the
+stuck-task reaper, the state machine, and idempotent delivery.
+
+</td>
+</tr>
+</table>
+
 ## Architecture
 
 ![High concurrency call scheduller architecture](docs/diagrams/high-concurrency-call-scheduller-architecture-2026-06-20.png)

@@ -14,7 +14,7 @@ serve 10,000 concurrent calls.
 
 ## Watch it work
 
-![Mission-control dashboard — live system health](docs/diagrams/high-concurrency-call-scheduller-gif-1.gif)
+<img src="docs/diagrams/high-concurrency-call-scheduller-gif-1.gif" alt="Mission-control dashboard — live system health" width="100%" />
 
 Three short videos, in the order they're meant to be watched — each one zooms in a
 level deeper, from *seeing it run* to *understanding the design* to *reading the code*.

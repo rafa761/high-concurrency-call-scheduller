@@ -247,3 +247,6 @@ terraform.rc
 # Lambda build artifacts
 build/
 infra/terraform/build/
+
+# Playwright screenshot artifacts
+.playwright-mcp/

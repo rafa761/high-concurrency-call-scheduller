@@ -1,5 +1,6 @@
 import csv
 import io
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -59,3 +60,28 @@ def parse_contacts(csv_text: str) -> ParseResult:
         }
         result.valid.append(ContactRow(phone=phone, timezone=timezone, metadata=metadata))
     return result
+
+
+def _row_to_contact(raw: dict) -> ContactRow | None:
+    phone = (raw.get("phone") or "").strip()
+    timezone = (raw.get("timezone") or "").strip()
+    if not phone or not _valid_timezone(timezone):
+        return None
+    metadata = {
+        k: (v or "").strip()
+        for k, v in raw.items()
+        if k not in REQUIRED_COLUMNS and k is not None
+    }
+    return ContactRow(phone=phone, timezone=timezone, metadata=metadata)
+
+
+def iter_valid_contacts(line_source: Iterable[str]) -> Iterator[ContactRow]:
+    reader = csv.DictReader(line_source)
+    fieldnames = reader.fieldnames or []
+    missing = [c for c in REQUIRED_COLUMNS if c not in fieldnames]
+    if missing:
+        raise ValueError(f"CSV missing required column(s): {', '.join(missing)}")
+    for raw in reader:
+        row = _row_to_contact(raw)
+        if row is not None:
+            yield row

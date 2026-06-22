@@ -50,3 +50,26 @@ def test_mixed_valid_and_invalid_rows():
     assert len(result.valid) == 2
     assert len(result.errors) == 1
     assert {r.phone for r in result.valid} == {"+15551230001", "+15551230003"}
+
+
+def test_iter_valid_contacts_streams_and_skips_invalid():
+    from ingestion.parser import iter_valid_contacts
+
+    lines = [
+        "phone,first_name,timezone,amount_due",
+        "+15551230001,Ann,America/New_York,1.00",
+        ",Bad,America/New_York,2.00",            # missing phone -> skipped
+        "+15551230002,Cy,Nowhere/Nope,3.00",     # bad timezone -> skipped
+        "+15551230003,Di,America/Chicago,4.00",
+    ]
+    rows = list(iter_valid_contacts(iter(lines)))
+    assert [r.phone for r in rows] == ["+15551230001", "+15551230003"]
+    assert rows[0].metadata == {"first_name": "Ann", "amount_due": "1.00"}
+
+
+def test_iter_valid_contacts_raises_on_missing_column():
+    import pytest
+    from ingestion.parser import iter_valid_contacts
+
+    with pytest.raises(ValueError, match="timezone"):
+        list(iter_valid_contacts(iter(["phone,first_name", "+15551230003,Cy"])))

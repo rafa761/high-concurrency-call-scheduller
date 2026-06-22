@@ -74,15 +74,15 @@ chaos-off: ## Reset all mocks to healthy
 
 .PHONY: tf-apply
 tf-apply: ## Provision AWS resources in LocalStack
-	$(TFLOCAL) sh -c "tflocal init -input=false && tflocal apply -auto-approve -input=false"
+	$(TFLOCAL) sh -c "rm -f localstack_providers_override.tf && tflocal init -input=false && tflocal apply -auto-approve -input=false"
 
 .PHONY: tf-plan
 tf-plan: ## Preview infrastructure changes without applying
-	$(TFLOCAL) sh -c "tflocal init -input=false && tflocal plan"
+	$(TFLOCAL) sh -c "rm -f localstack_providers_override.tf && tflocal init -input=false && tflocal plan"
 
 .PHONY: tf-output
 tf-output: ## Show Terraform outputs (bucket names, queue URLs)
-	$(TFLOCAL) sh -c "tflocal output"
+	$(TFLOCAL) sh -c "rm -f localstack_providers_override.tf && tflocal output"
 
 # ----------------------------------------------------------------------------
 # db-*  Database: alembic migrations + postgres

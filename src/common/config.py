@@ -18,10 +18,14 @@ class Settings(BaseSettings):
     outcome_queue: str = "outcome-delivery"
     crm_dlq: str = "crm-dlq"
 
-    scheduler_window_start_hour: int = 8
-    scheduler_window_end_hour: int = 21
-    scheduler_batch_size: int = 50
-    scheduler_poll_interval_seconds: float = 5.0
+    # env prefix is already SCHEDULER_, so these are SCHEDULER_WINDOW_START_HOUR etc.
+    window_start_hour: int = 8
+    window_end_hour: int = 21
+    batch_size: int = 50
+    poll_interval_seconds: float = 5.0
+
+    provider_base_url: str = "http://localhost:9001"
+    provider_callback_url: str = "http://outcome-service:9002/provider/webhook"
 
 
 def get_settings() -> Settings:

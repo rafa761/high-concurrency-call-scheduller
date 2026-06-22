@@ -15,9 +15,9 @@ def run_tick(conn, sqs, queue_url, settings) -> int:
     claimed = claim_and_reserve(
         conn,
         now=now,
-        batch_size=settings.scheduler_batch_size,
-        window_start_hour=settings.scheduler_window_start_hour,
-        window_end_hour=settings.scheduler_window_end_hour,
+        batch_size=settings.batch_size,
+        window_start_hour=settings.window_start_hour,
+        window_end_hour=settings.window_end_hour,
     )
     conn.commit()  # make 'dispatching' durable before enqueuing
 
@@ -53,7 +53,7 @@ def main() -> None:
             return
         while True:
             run_tick(conn, sqs, queue_url, settings)
-            time.sleep(settings.scheduler_poll_interval_seconds)
+            time.sleep(settings.poll_interval_seconds)
 
 
 if __name__ == "__main__":

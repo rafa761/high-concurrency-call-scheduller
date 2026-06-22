@@ -11,7 +11,8 @@ resource "aws_sqs_queue" "crm_dlq" {
 }
 
 resource "aws_sqs_queue" "dispatch" {
-  name = "dispatch"
+  name                       = "dispatch"
+  visibility_timeout_seconds = 10
 }
 
 resource "aws_sqs_queue" "outcome_delivery" {

@@ -83,3 +83,4 @@ async def test_call_task_persists_with_defaults(session):
     assert fetched.next_eligible_at is None
     assert fetched.last_attempt_at is None
     assert fetched.created_at is not None
+    assert fetched.provider_call_id is None

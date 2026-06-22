@@ -62,6 +62,7 @@ class CallTask(SQLModel, table=True):
     contact_id: uuid.UUID = Field(foreign_key="contacts.id", unique=True)
     status: str = Field(default="pending")
     attempts: int = Field(default=0)
+    provider_call_id: str | None = Field(default=None)
     next_eligible_at: datetime | None = Field(
         default=None, sa_column=Column(DateTime(timezone=True), nullable=True)
     )

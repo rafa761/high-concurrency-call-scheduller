@@ -46,3 +46,33 @@ def create_call_tasks(conn, campaign_id) -> int:
     with conn.cursor() as cur:
         cur.execute(_CREATE_TASKS_SQL, (campaign_id,))
         return cur.rowcount
+
+
+_BULK_INSERT_SQL = """
+    INSERT INTO contacts (id, campaign_id, phone, timezone, metadata, created_at)
+    SELECT gen_random_uuid(), %s, s.phone, s.timezone, s.metadata, now()
+    FROM (
+        SELECT DISTINCT ON (phone) phone, timezone, metadata
+        FROM _staging_contacts
+        ORDER BY phone
+    ) s
+    ON CONFLICT (campaign_id, phone) DO NOTHING
+"""
+
+
+def bulk_insert_contacts(conn, campaign_id, rows) -> int:
+    with conn.cursor() as cur:
+        # Fresh staging table each call (robust to multiple calls per connection;
+        # ON COMMIT DROP also cleans it up when the caller commits).
+        cur.execute("DROP TABLE IF EXISTS _staging_contacts")
+        cur.execute(
+            "CREATE TEMP TABLE _staging_contacts "
+            "(phone text, timezone text, metadata jsonb) ON COMMIT DROP"
+        )
+        with cur.copy(
+            "COPY _staging_contacts (phone, timezone, metadata) FROM STDIN"
+        ) as copy:
+            for row in rows:
+                copy.write_row((row.phone, row.timezone, Jsonb(row.metadata)))
+        cur.execute(_BULK_INSERT_SQL, (campaign_id,))
+        return cur.rowcount

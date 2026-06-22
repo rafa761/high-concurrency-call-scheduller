@@ -87,3 +87,25 @@ def test_create_call_tasks_is_idempotent_and_set_based(conn):
             (cid,),
         )
         assert cur.fetchone()[0] == 3
+
+
+def test_bulk_insert_contacts_copies_and_is_idempotent(conn):
+    from ingestion.db import bulk_insert_contacts
+
+    cid = _make_campaign(conn)
+    rows = [
+        ContactRow("+15551250001", "America/New_York", {"first_name": "Ann"}),
+        ContactRow("+15551250002", "America/Chicago", {"first_name": "Bob"}),
+        ContactRow("+15551250002", "America/Chicago", {"first_name": "Bob"}),  # dup phone in batch
+    ]
+    inserted = bulk_insert_contacts(conn, cid, rows)
+    assert inserted == 2  # duplicate phone collapsed
+
+    # re-running inserts nothing (ON CONFLICT against existing rows)
+    assert bulk_insert_contacts(conn, cid, list(rows)) == 0
+
+    with conn.cursor() as cur:
+        cur.execute("SELECT count(*) FROM contacts WHERE campaign_id = %s", (cid,))
+        assert cur.fetchone()[0] == 2
+        cur.execute("SELECT metadata FROM contacts WHERE phone = %s", ("+15551250001",))
+        assert cur.fetchone()[0] == {"first_name": "Ann"}

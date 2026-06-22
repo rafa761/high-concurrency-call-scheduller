@@ -8,7 +8,13 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from common.config import get_settings
+from common.config import Settings, get_settings
+
+
+def psycopg_dsn(settings: Settings | None = None) -> str:
+    # Raw libpq DSN for psycopg.connect(): drop SQLAlchemy's "+psycopg" driver tag.
+    settings = settings or get_settings()
+    return settings.database_url.replace("+psycopg", "")
 
 
 @lru_cache(maxsize=1)

@@ -1,3 +1,5 @@
+import json
+
 import boto3
 from botocore.config import Config
 
@@ -36,3 +38,23 @@ def presign_put_url(
         Params={"Bucket": bucket, "Key": key},
         ExpiresIn=expires_in,
     )
+
+
+def sqs_client(endpoint_url: str, settings: Settings | None = None):
+    settings = settings or get_settings()
+    return boto3.client(
+        "sqs",
+        endpoint_url=endpoint_url,
+        region_name=settings.aws_region,
+        aws_access_key_id=_DUMMY_KEY,
+        aws_secret_access_key=_DUMMY_SECRET,
+    )
+
+
+def resolve_queue_url(client, queue_name: str) -> str:
+    return client.get_queue_url(QueueName=queue_name)["QueueUrl"]
+
+
+def send_message(client, queue_url: str, body: dict) -> str:
+    resp = client.send_message(QueueUrl=queue_url, MessageBody=json.dumps(body))
+    return resp["MessageId"]

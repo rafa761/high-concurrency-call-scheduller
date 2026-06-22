@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     provider_base_url: str = "http://localhost:9001"
     provider_callback_url: str = "http://outcome-service:9002/provider/webhook"
     webhook_signing_secret: str = "dev-signing-secret"
+    crm_base_url: str = "http://localhost:9003"
 
 
 def get_settings() -> Settings:

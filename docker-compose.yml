@@ -155,3 +155,20 @@ services:
     command: ["uv", "run", "uvicorn", "mock_crm.main:app", "--host", "0.0.0.0", "--port", "9003"]
     ports:
       - "9003:9003"
+
+  crm-worker:
+    build:
+      context: .
+      dockerfile: src/campaign_api/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      - SCHEDULER_DATABASE_URL=postgresql+psycopg://scheduler:scheduler@postgres:5432/scheduler
+      - SCHEDULER_AWS_ENDPOINT_URL=http://localstack:4566
+      - SCHEDULER_CRM_BASE_URL=http://mock-crm:9003
+    command: ["uv", "run", "python", "-m", "crm_worker.main"]

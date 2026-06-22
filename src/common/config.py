@@ -9,7 +9,9 @@ class Settings(BaseSettings):
     # Endpoint embedded in presigned URLs — must be reachable by the *client*
     # (host), not the in-network localstack hostname.
     s3_public_endpoint_url: str = "http://localhost:4566"
-    database_url: str = "postgresql+psycopg://scheduler:scheduler@localhost:5432/scheduler"
+    database_url: str = (
+        "postgresql+psycopg://scheduler:scheduler@localhost:5432/scheduler"
+    )
 
     campaign_uploads_bucket: str = "campaign-uploads"
     call_artifacts_bucket: str = "call-artifacts"

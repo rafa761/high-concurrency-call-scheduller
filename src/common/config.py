@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     provider_callback_url: str = "http://outcome-service:9002/provider/webhook"
     webhook_signing_secret: str = "dev-signing-secret"
     crm_base_url: str = "http://localhost:9003"
-    dashboard_interval_seconds: float = 2.0
+    dashboard_interval_seconds: float = 1.0
 
 
 def get_settings() -> Settings:

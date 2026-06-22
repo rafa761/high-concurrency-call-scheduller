@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import random
@@ -20,8 +21,11 @@ _chaos = {
     "latency_ms": int(os.environ.get("MOCK_PROVIDER_LATENCY_MS", "0")),
     "call_failure_rate": float(os.environ.get("MOCK_PROVIDER_CALL_FAILURE_RATE", "0.0")),
     "duplicate_rate": float(os.environ.get("MOCK_PROVIDER_DUPLICATE_RATE", "0.0")),
-    "callback_delay_ms": int(os.environ.get("MOCK_PROVIDER_CALLBACK_DELAY_MS", "500")),
     "drop_callback_rate": float(os.environ.get("MOCK_PROVIDER_DROP_CALLBACK_RATE", "0.0")),
+    # Simulated call duration: the webhook fires after a random delay in this
+    # range, so a task realistically dwells in "calling" for a few seconds.
+    "call_duration_min_ms": int(os.environ.get("MOCK_PROVIDER_CALL_DURATION_MIN_MS", "3000")),
+    "call_duration_max_ms": int(os.environ.get("MOCK_PROVIDER_CALL_DURATION_MAX_MS", "8000")),
 }
 
 
@@ -36,8 +40,9 @@ class ChaosConfig(BaseModel):
     latency_ms: int | None = None
     call_failure_rate: float | None = None
     duplicate_rate: float | None = None
-    callback_delay_ms: int | None = None
     drop_callback_rate: float | None = None
+    call_duration_min_ms: int | None = None
+    call_duration_max_ms: int | None = None
 
 
 @app.get("/config")
@@ -52,9 +57,16 @@ def set_config(cfg: ChaosConfig) -> dict:
     return _chaos
 
 
-def _fire_callback(provider_call_id: str, callback_url: str) -> None:
-    if _chaos["callback_delay_ms"]:
-        time.sleep(_chaos["callback_delay_ms"] / 1000)
+def _call_duration_seconds() -> float:
+    lo = _chaos["call_duration_min_ms"]
+    hi = _chaos["call_duration_max_ms"]
+    return random.uniform(min(lo, hi), max(lo, hi)) / 1000
+
+
+async def _fire_callback(provider_call_id: str, callback_url: str) -> None:
+    # asyncio.sleep (not time.sleep) so thousands of calls can be "in progress"
+    # concurrently without blocking the server's thread pool.
+    await asyncio.sleep(_call_duration_seconds())
 
     if random.random() < _chaos["call_failure_rate"]:
         payload = {"provider_call_id": provider_call_id, "status": "failed",
@@ -68,10 +80,10 @@ def _fire_callback(provider_call_id: str, callback_url: str) -> None:
     body = json.dumps(payload).encode()
     headers = {"X-Signature": sign_payload(_SECRET, body), "content-type": "application/json"}
     deliveries = 2 if random.random() < _chaos["duplicate_rate"] else 1
-    with httpx.Client(timeout=10.0) as client:
+    async with httpx.AsyncClient(timeout=10.0) as client:
         for _ in range(deliveries):
             try:
-                client.post(callback_url, content=body, headers=headers)
+                await client.post(callback_url, content=body, headers=headers)
             except httpx.HTTPError:
                 pass
 

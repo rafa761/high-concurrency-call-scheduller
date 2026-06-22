@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Outbound Call Orchestration · Mission Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #070b11;
+    --panel: rgba(17, 24, 33, 0.72);
+    --panel-edge: #1b2734;
+    --grid: rgba(56, 81, 110, 0.10);
+    --text: #cdd9e6;
+    --dim: #5d6e80;
+    --faint: #36465700;
+    --green: #34d399;
+    --cyan: #38bdf8;
+    --amber: #fbbf24;
+    --red: #fb5d5d;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+    --disp: "Chakra Petch", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background:
+      radial-gradient(1200px 700px at 78% -10%, rgba(56, 189, 248, 0.08), transparent 60%),
+      radial-gradient(1000px 600px at 10% 110%, rgba(52, 211, 153, 0.06), transparent 55%),
+      linear-gradient(var(--grid) 1px, transparent 1px) 0 0 / 100% 34px,
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0 / 34px 100%,
+      var(--bg);
+    color: var(--text);
+    font-family: var(--disp);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100%;
+    padding: 22px clamp(16px, 3vw, 40px) 40px;
+  }
+  body::after { /* vignette + faint scanlines for instrument-panel atmosphere */
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 50;
+    background:
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0 1px, transparent 1px 3px),
+      radial-gradient(120% 120% at 50% 50%, transparent 62%, rgba(0,0,0,0.55));
+    mix-blend-mode: multiply; opacity: 0.5;
+  }
+
+  .topbar {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 18px; flex-wrap: wrap;
+    border-bottom: 1px solid var(--panel-edge); padding-bottom: 14px; margin-bottom: 22px;
+  }
+  .brand { display: flex; align-items: baseline; gap: 14px; }
+  .brand .mark { color: var(--cyan); font-size: 12px; letter-spacing: .42em; }
+  .brand h1 {
+    margin: 0; font-weight: 600; font-size: clamp(15px, 2vw, 22px);
+    letter-spacing: .12em; text-transform: uppercase;
+  }
+  .brand h1 b { color: var(--cyan); font-weight: 700; }
+  .status { display: flex; align-items: center; gap: 22px; font-family: var(--mono); font-size: 12px; }
+  .status .clock { color: var(--dim); letter-spacing: .08em; }
+  .link { display:flex; align-items:center; gap:9px; letter-spacing:.18em; text-transform:uppercase; font-size:11px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--green);
+    box-shadow: 0 0 0 0 rgba(52,211,153,.55); animation: pulse 1.8s infinite; }
+  .link.down .dot { background: var(--amber); animation: pulse-amber 1s infinite; }
+  .link.down .label { color: var(--amber); }
+  @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(52,211,153,.5)} 70%{box-shadow:0 0 0 7px rgba(52,211,153,0)} 100%{box-shadow:0 0 0 0 rgba(52,211,153,0)} }
+  @keyframes pulse-amber { 0%{opacity:.4} 50%{opacity:1} 100%{opacity:.4} }
+
+  .grid {
+    display: grid; gap: 16px;
+    grid-template-columns: repeat(12, 1fr);
+  }
+  .panel {
+    position: relative; grid-column: span 4;
+    background: var(--panel); border: 1px solid var(--panel-edge); border-radius: 10px;
+    padding: 18px 18px 20px; backdrop-filter: blur(3px);
+    opacity: 0; transform: translateY(10px); animation: rise .55s cubic-bezier(.2,.7,.2,1) forwards;
+  }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+  .panel:nth-child(1){animation-delay:.04s}.panel:nth-child(2){animation-delay:.12s}
+  .panel:nth-child(3){animation-delay:.20s}.panel:nth-child(4){animation-delay:.28s}
+  .panel:nth-child(5){animation-delay:.36s}
+  .panel::before, .panel::after { /* corner registration ticks */
+    content: ""; position: absolute; width: 9px; height: 9px; border: 1px solid var(--dim); opacity:.5; }
+  .panel::before { top: 7px; left: 7px; border-right: 0; border-bottom: 0; }
+  .panel::after  { bottom: 7px; right: 7px; border-left: 0; border-top: 0; }
+  .span-8 { grid-column: span 8; } .span-6{ grid-column: span 6; } .span-12{ grid-column: span 12; }
+
+  .phead { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+  .phead h2 { margin:0; font-size:11px; letter-spacing:.28em; text-transform:uppercase; color:var(--dim); font-weight:600; }
+  .phead .tag { font-family:var(--mono); font-size:10px; color:var(--dim); letter-spacing:.1em; }
+
+  .num { font-family: var(--mono); font-variant-numeric: tabular-nums; font-weight: 500; line-height: 1; }
+  .flash { animation: flash .6s ease; }
+  @keyframes flash { 0%{ color:#fff; text-shadow:0 0 14px currentColor;} 100%{} }
+
+  /* queues */
+  .q { margin-bottom: 16px; } .q:last-child{ margin-bottom:0; }
+  .q .qtop { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:7px; }
+  .q .qname { font-size:12px; letter-spacing:.16em; text-transform:uppercase; }
+  .q .qval { font-size:26px; } .q .qsub { color:var(--dim); font-family:var(--mono); font-size:11px; margin-left:8px;}
+  .bar { height:6px; border-radius:3px; background:#16202c; overflow:hidden; }
+  .bar > span { display:block; height:100%; width:0; border-radius:3px; transition: width .6s cubic-bezier(.2,.7,.2,1);
+    background: linear-gradient(90deg, var(--cyan), #6ee7ff); }
+  .q.dlq .qval { color: var(--dim); }
+  .q.dlq.hot .qval { color: var(--red); }
+  .q.dlq.hot .bar > span { background: linear-gradient(90deg, var(--red), #ff9a9a); }
+  .panel.alarm { border-color: rgba(251,93,93,.7); box-shadow: 0 0 0 1px rgba(251,93,93,.3), 0 0 30px rgba(251,93,93,.18); animation: alarm 1.4s infinite; }
+  @keyframes alarm { 0%,100%{ box-shadow:0 0 0 1px rgba(251,93,93,.25), 0 0 22px rgba(251,93,93,.10);} 50%{ box-shadow:0 0 0 1px rgba(251,93,93,.5), 0 0 34px rgba(251,93,93,.28);} }
+
+  /* concurrency gauge */
+  .gauge .num.big { font-size: 46px; }
+  .gauge .cap { color: var(--dim); font-size: 22px; }
+  .gauge .bar { height: 10px; margin-top: 14px; }
+  .gauge .bar > span { background: linear-gradient(90deg, var(--green), #9ff5cf); }
+  .gauge.sat .bar > span { background: linear-gradient(90deg, var(--amber), #ffe08a); }
+  .gauge .pct { font-family:var(--mono); font-size:11px; color:var(--dim); margin-top:8px; display:block; letter-spacing:.1em;}
+
+  /* funnel */
+  .funnel { display:flex; align-items:stretch; gap:8px; }
+  .stage { flex:1; text-align:center; padding:14px 6px; border:1px solid var(--panel-edge); border-radius:8px; background:#0d141d; position:relative;}
+  .stage .sv { font-size:30px; } .stage .sl{ display:block; margin-top:8px; font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim);}
+  .stage.s-pending .sv{color:var(--text)} .stage.s-dispatching .sv{color:var(--cyan)}
+  .stage.s-calling .sv{color:var(--amber)} .stage.s-completed .sv{color:var(--green)} .stage.s-exhausted .sv{color:var(--red)}
+  .arrow { align-self:center; color:var(--dim); font-family:var(--mono); }
+
+  /* split metric panels */
+  .duo { display:flex; gap:14px; }
+  .metric { flex:1; }
+  .metric .num { font-size: 38px; display:block; }
+  .metric .ml { font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--dim); margin-top:8px; display:block;}
+  .metric.ok .num{ color:var(--green);} .metric.bad .num{ color:var(--red);} .metric.dim .num{ color:var(--text);}
+
+  .foot { margin-top: 22px; color: var(--dim); font-family: var(--mono); font-size: 10.5px; letter-spacing:.1em; text-align:center; }
+  @media (max-width: 900px){ .panel,.span-8,.span-6{ grid-column: span 12; } }
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="mark">◖◗ OPS</span>
+      <h1>Outbound Call Orchestration <b>// Mission Control</b></h1>
+    </div>
+    <div class="status">
+      <span class="clock">SYS TIME <span id="clock">--:--:--</span></span>
+      <span class="link" id="link"><span class="dot"></span><span class="label" id="link-label">CONNECTING</span></span>
+    </div>
+  </header>
+
+  <main class="grid">
+    <section class="panel span-8" id="panel-queues">
+      <div class="phead"><h2>Message Queues</h2><span class="tag">depth · in-flight</span></div>
+      <div class="q" id="q-dispatch">
+        <div class="qtop"><span class="qname">dispatch</span><span><span class="qval num" data-q="dispatch">0</span><span class="qsub" data-qf="dispatch">+0 in-flight</span></span></div>
+        <div class="bar"><span data-qbar="dispatch"></span></div>
+      </div>
+      <div class="q" id="q-outcome">
+        <div class="qtop"><span class="qname">outcome-delivery</span><span><span class="qval num" data-q="outcome_delivery">0</span><span class="qsub" data-qf="outcome_delivery">+0 in-flight</span></span></div>
+        <div class="bar"><span data-qbar="outcome_delivery"></span></div>
+      </div>
+      <div class="q dlq" id="q-dlq">
+        <div class="qtop"><span class="qname">crm-dlq · dead letters</span><span><span class="qval num" data-q="crm_dlq">0</span><span class="qsub" data-qf="crm_dlq">+0 in-flight</span></span></div>
+        <div class="bar"><span data-qbar="crm_dlq"></span></div>
+      </div>
+    </section>
+
+    <section class="panel gauge" id="panel-conc">
+      <div class="phead"><h2>Concurrency</h2><span class="tag">active / cap</span></div>
+      <div><span class="num big" id="conc-active">0</span><span class="cap num"> / <span id="conc-cap">0</span></span></div>
+      <div class="bar"><span id="conc-bar"></span></div>
+      <span class="pct" id="conc-pct">0% utilised</span>
+    </section>
+
+    <section class="panel span-12" id="panel-funnel">
+      <div class="phead"><h2>Call Task Funnel</h2><span class="tag">live state machine</span></div>
+      <div class="funnel">
+        <div class="stage s-pending"><span class="sv num" data-f="pending">0</span><span class="sl">pending</span></div>
+        <span class="arrow">▸</span>
+        <div class="stage s-dispatching"><span class="sv num" data-f="dispatching">0</span><span class="sl">dispatching</span></div>
+        <span class="arrow">▸</span>
+        <div class="stage s-calling"><span class="sv num" data-f="calling">0</span><span class="sl">calling</span></div>
+        <span class="arrow">▸</span>
+        <div class="stage s-completed"><span class="sv num" data-f="completed">0</span><span class="sl">completed</span></div>
+        <span class="arrow">▸</span>
+        <div class="stage s-exhausted"><span class="sv num" data-f="exhausted">0</span><span class="sl">exhausted</span></div>
+      </div>
+    </section>
+
+    <section class="panel span-6" id="panel-crm">
+      <div class="phead"><h2>CRM Delivery</h2><span class="tag">at-least-once</span></div>
+      <div class="duo">
+        <div class="metric ok"><span class="num" id="crm-delivered">0</span><span class="ml">delivered</span></div>
+        <div class="metric bad"><span class="num" id="crm-failed">0</span><span class="ml">failed attempts</span></div>
+      </div>
+    </section>
+
+    <section class="panel span-6" id="panel-totals">
+      <div class="phead"><h2>Totals</h2><span class="tag">all campaigns</span></div>
+      <div class="duo">
+        <div class="metric dim"><span class="num" id="t-campaigns">0</span><span class="ml">campaigns</span></div>
+        <div class="metric dim"><span class="num" id="t-contacts">0</span><span class="ml">contacts</span></div>
+        <div class="metric dim"><span class="num" id="t-tasks">0</span><span class="ml">call tasks</span></div>
+      </div>
+    </section>
+  </main>
+
+  <p class="foot">SSE STREAM · /stats/stream · UPDATED <span id="updated">—</span></p>
+
+<script>
+  const $ = (s, r=document) => r.querySelector(s);
+  const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+
+  function setNum(el, value) {
+    if (!el) return;
+    const next = String(value);
+    if (el.textContent !== next) {
+      el.textContent = next;
+      el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+    }
+  }
+  function setBar(name, value, denom) {
+    const el = document.querySelector(`[data-qbar="${name}"]`);
+    if (!el) return;
+    const pct = denom > 0 ? Math.min(100, (value / denom) * 100) : 0;
+    el.style.width = pct + "%";
+  }
+
+  function render(s) {
+    if (!s || !s.queues) return;
+    const q = s.queues, depths = ["dispatch","outcome_delivery","crm_dlq"].map(k => (q[k]||{}).visible || 0);
+    const denom = Math.max(10, ...depths); // shared scale so bars are comparable
+    for (const k of ["dispatch","outcome_delivery","crm_dlq"]) {
+      const d = q[k] || {visible:0, in_flight:0};
+      setNum(document.querySelector(`[data-q="${k}"]`), d.visible || 0);
+      const f = document.querySelector(`[data-qf="${k}"]`); if (f) f.textContent = `+${d.in_flight||0} in-flight`;
+      setBar(k, d.visible || 0, denom);
+    }
+    // DLQ alarm state
+    const dlqHot = ((q.crm_dlq||{}).visible || 0) > 0;
+    $("#q-dlq").classList.toggle("hot", dlqHot);
+    $("#panel-queues").classList.toggle("alarm", dlqHot);
+
+    // concurrency
+    const c = s.concurrency || {active:0, capacity:0};
+    setNum($("#conc-active"), c.active || 0); setNum($("#conc-cap"), c.capacity || 0);
+    const util = c.capacity > 0 ? (c.active / c.capacity) * 100 : 0;
+    $("#conc-bar").style.width = Math.min(100, util) + "%";
+    $("#conc-pct").textContent = Math.round(util) + "% utilised";
+    $("#panel-conc").classList.toggle("sat", util >= 80);
+
+    // funnel
+    const fn = s.task_funnel || {};
+    for (const st of ["pending","dispatching","calling","completed","exhausted"])
+      setNum(document.querySelector(`[data-f="${st}"]`), fn[st] || 0);
+
+    // crm + totals
+    const crm = s.crm || {}, t = s.totals || {};
+    setNum($("#crm-delivered"), crm.delivered || 0); setNum($("#crm-failed"), crm.failed || 0);
+    setNum($("#t-campaigns"), t.campaigns || 0); setNum($("#t-contacts"), t.contacts || 0); setNum($("#t-tasks"), t.call_tasks || 0);
+
+    $("#updated").textContent = new Date().toLocaleTimeString();
+  }
+
+  function setLink(up) {
+    const el = $("#link"); el.classList.toggle("down", !up);
+    $("#link-label").textContent = up ? "LIVE" : "RECONNECTING";
+  }
+
+  // clock
+  setInterval(() => { $("#clock").textContent = new Date().toLocaleTimeString("en-GB"); }, 1000);
+
+  // first paint, then live stream
+  fetch("/stats").then(r => r.json()).then(render).catch(() => {});
+  const es = new EventSource("/stats/stream");
+  es.onopen = () => setLink(true);
+  es.onerror = () => setLink(false);
+  es.onmessage = (e) => { try { render(JSON.parse(e.data)); setLink(true); } catch (_) {} };
+</script>
+</body>
+</html>

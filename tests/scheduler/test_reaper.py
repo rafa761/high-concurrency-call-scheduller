@@ -7,7 +7,9 @@ import pytest
 from scheduler.reaper import reap_stuck_tasks
 
 DSN = "postgresql://scheduler:scheduler@localhost:5432/scheduler"
-NOW = datetime(2026, 6, 22, 15, 0, tzinfo=timezone.utc)
+# A reference time in the distant past so real (2026) committed rows never fall
+# inside the reaped window — only this test's own backdated tasks do.
+NOW = datetime(2020, 1, 1, 0, 0, tzinfo=timezone.utc)
 
 
 @pytest.fixture

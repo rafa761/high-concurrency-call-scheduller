@@ -43,8 +43,8 @@ ps: ## Show status of all containers
 	$(COMPOSE) ps
 
 .PHONY: logs
-logs: ## Follow logs from all containers (Ctrl-C to stop)
-	$(COMPOSE) logs -f
+logs: ## Follow logs from all containers except localstack (Ctrl-C to stop)
+	$(COMPOSE) logs -f $(shell $(COMPOSE) config --services | grep -v '^localstack$$')
 
 .PHONY: test
 test: ## Run the Python test suite

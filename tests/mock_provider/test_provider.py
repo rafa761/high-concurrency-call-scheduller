@@ -29,3 +29,8 @@ async def test_fails_when_failure_rate_is_one(client):
         "/calls", json={"task_id": "t1", "phone": "+15551112222", "callback_url": "http://cb"}
     )
     assert resp.status_code == 503
+
+
+async def test_config_accepts_drop_callback_rate(client):
+    resp = await client.post("/config", json={"drop_callback_rate": 1.0})
+    assert resp.json()["drop_callback_rate"] == 1.0

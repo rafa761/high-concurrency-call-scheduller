@@ -21,6 +21,7 @@ _chaos = {
     "call_failure_rate": float(os.environ.get("MOCK_PROVIDER_CALL_FAILURE_RATE", "0.0")),
     "duplicate_rate": float(os.environ.get("MOCK_PROVIDER_DUPLICATE_RATE", "0.0")),
     "callback_delay_ms": int(os.environ.get("MOCK_PROVIDER_CALLBACK_DELAY_MS", "500")),
+    "drop_callback_rate": float(os.environ.get("MOCK_PROVIDER_DROP_CALLBACK_RATE", "0.0")),
 }
 
 
@@ -36,6 +37,7 @@ class ChaosConfig(BaseModel):
     call_failure_rate: float | None = None
     duplicate_rate: float | None = None
     callback_delay_ms: int | None = None
+    drop_callback_rate: float | None = None
 
 
 @app.get("/config")
@@ -83,6 +85,8 @@ def place_call(req: CallRequest, response: Response, background: BackgroundTasks
         return {"error": "provider unavailable"}
 
     provider_call_id = str(uuid.uuid4())
-    if req.callback_url:
+    # drop_callback_rate simulates a lost webhook: the call is "placed" but no
+    # outcome is ever reported, leaving the task stuck for the reaper to reclaim.
+    if req.callback_url and random.random() >= _chaos["drop_callback_rate"]:
         background.add_task(_fire_callback, provider_call_id, req.callback_url)
     return {"provider_call_id": provider_call_id, "status": "accepted"}

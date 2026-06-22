@@ -8,10 +8,17 @@ from common.aws import resolve_queue_url, send_message, sqs_client
 from common.config import get_settings
 from common.db import psycopg_dsn
 from scheduler.claim import claim_and_reserve
+from scheduler.reaper import reap_stuck_tasks
 
 
 def run_tick(conn, sqs, queue_url, settings) -> int:
     now = datetime.now(timezone.utc)
+
+    reaped = reap_stuck_tasks(conn, now, settings.stuck_after_seconds)
+    if reaped:
+        conn.commit()
+        print(f"scheduler: reaped {reaped} stuck task(s)")
+
     claimed = claim_and_reserve(
         conn,
         now=now,

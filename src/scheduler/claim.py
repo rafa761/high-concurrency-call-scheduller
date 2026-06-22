@@ -31,7 +31,7 @@ _RESERVE_SQL = """
     RETURNING cc.active_count
 """
 
-_MARK_SQL = "UPDATE call_tasks SET status = 'dispatching' WHERE id = %(id)s"
+_MARK_SQL = "UPDATE call_tasks SET status = 'dispatching', last_attempt_at = %(now)s WHERE id = %(id)s"
 
 
 @dataclass
@@ -66,7 +66,7 @@ def claim_and_reserve(
             cur.execute(_RESERVE_SQL, {"cid": row["campaign_id"]})
             if cur.fetchone() is None:
                 continue  # cap reached for this campaign; leave the task pending
-            cur.execute(_MARK_SQL, {"id": row["id"]})
+            cur.execute(_MARK_SQL, {"id": row["id"], "now": now})
             claimed.append(
                 ClaimedTask(
                     task_id=row["id"],

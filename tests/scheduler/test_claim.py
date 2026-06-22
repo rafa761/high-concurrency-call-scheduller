@@ -76,6 +76,10 @@ def test_claims_only_in_window_tasks(conn):
     assert _status(conn, in_window) == "dispatching"
     assert _status(conn, out_window) == "pending"
 
+    with conn.cursor() as cur:
+        cur.execute("SELECT last_attempt_at FROM call_tasks WHERE id = %s", (in_window,))
+        assert cur.fetchone()[0] is not None
+
 
 def test_respects_concurrency_cap(conn):
     cid = _campaign(conn, max_concurrency=2)

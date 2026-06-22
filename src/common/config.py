@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     window_end_hour: int = 21
     batch_size: int = 50
     poll_interval_seconds: float = 5.0
+    stuck_after_seconds: int = 120
 
     provider_base_url: str = "http://localhost:9001"
     provider_callback_url: str = "http://outcome-service:9002/provider/webhook"

@@ -20,8 +20,8 @@ resource "aws_lambda_function" "ingestion" {
   handler          = "ingestion.handler.handler"
   filename         = "${path.module}/build/ingestion.zip"
   source_code_hash = filebase64sha256("${path.module}/build/ingestion.zip")
-  timeout          = 120
-  memory_size      = 512
+  timeout          = 300
+  memory_size      = 1024
 
   environment {
     variables = {

@@ -1,3 +1,5 @@
+import uuid
+
 import pytest
 from botocore.exceptions import BotoCoreError, ClientError
 
@@ -14,24 +16,27 @@ def test_psycopg_dsn_strips_sqlalchemy_driver(monkeypatch):
 
 
 @pytest.fixture
-def sqs():
+def temp_queue():
+    # An isolated queue so the test never collides with the shared dispatch queue.
     settings = get_settings()
     client = sqs_client(settings.aws_endpoint_url, settings)
+    name = f"test-{uuid.uuid4().hex[:8]}"
     try:
-        url = resolve_queue_url(client, settings.dispatch_queue)
+        client.create_queue(QueueName=name)
     except (ClientError, BotoCoreError):
-        pytest.skip("LocalStack SQS not reachable / dispatch queue missing (run `make up`)")
-    return client, url
+        pytest.skip("LocalStack SQS not reachable (run `make up`)")
+    url = resolve_queue_url(client, name)
+    try:
+        yield client, url
+    finally:
+        client.delete_queue(QueueUrl=url)
 
 
-def test_send_and_receive_roundtrip(sqs):
-    client, url = sqs
+def test_send_and_receive_roundtrip(temp_queue):
+    client, url = temp_queue
     msg_id = send_message(client, url, {"hello": "world", "n": 1})
     assert msg_id
 
     resp = client.receive_message(QueueUrl=url, MaxNumberOfMessages=1, WaitTimeSeconds=2)
     bodies = [m["Body"] for m in resp.get("Messages", [])]
-    # cleanup any received messages so the queue stays tidy
-    for m in resp.get("Messages", []):
-        client.delete_message(QueueUrl=url, ReceiptHandle=m["ReceiptHandle"])
     assert any('"hello": "world"' in b for b in bodies)

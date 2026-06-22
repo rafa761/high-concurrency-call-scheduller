@@ -55,18 +55,18 @@ demo: ## End-to-end smoke: create a campaign and upload the sample CSV
 	@bash scripts/demo.sh
 
 .PHONY: chaos-on
-chaos-on: ## Crank failure rates on the provider and CRM mocks
+chaos-on: ## Crank failure rates on the provider and CRM mocks (turbulent)
 	@curl -s -X POST localhost:9001/config -H 'content-type: application/json' \
-		-d '{"failure_rate":0.3,"latency_ms":2000,"call_failure_rate":0.3,"duplicate_rate":0.3,"callback_delay_ms":2000, "drop_callback_rate":0.3}' >/dev/null && echo "provider chaos ON"
+		-d '{"failure_rate":0.4,"latency_ms":2000,"call_failure_rate":0.4,"duplicate_rate":0.4,"drop_callback_rate":0.3,"call_duration_min_ms":2000,"call_duration_max_ms":15000}' >/dev/null && echo "provider chaos ON"
 	@curl -s -X POST localhost:9003/config -H 'content-type: application/json' \
-		-d '{"failure_rate":0.3}' >/dev/null && echo "crm chaos ON"
+		-d '{"failure_rate":0.5,"latency_ms":500}' >/dev/null && echo "crm chaos ON"
 
 .PHONY: chaos-off
-chaos-off: ## Reset all mocks to healthy
+chaos-off: ## Reset all mocks to healthy (realistic ~3-8s calls, no failures)
 	@curl -s -X POST localhost:9001/config -H 'content-type: application/json' \
-		-d '{"failure_rate":0,"latency_ms":0,"call_failure_rate":0,"duplicate_rate":0,"callback_delay_ms":0, "drop_callback_rate":0}' >/dev/null && echo "provider chaos OFF"
+		-d '{"failure_rate":0,"latency_ms":0,"call_failure_rate":0,"duplicate_rate":0,"drop_callback_rate":0,"call_duration_min_ms":3000,"call_duration_max_ms":8000}' >/dev/null && echo "provider chaos OFF"
 	@curl -s -X POST localhost:9003/config -H 'content-type: application/json' \
-		-d '{"failure_rate":0}' >/dev/null && echo "crm chaos OFF"
+		-d '{"failure_rate":0,"latency_ms":0}' >/dev/null && echo "crm chaos OFF"
 
 # ----------------------------------------------------------------------------
 # tf-*  Terraform / infrastructure (via tflocal)
